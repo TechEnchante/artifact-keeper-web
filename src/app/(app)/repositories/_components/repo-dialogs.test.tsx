@@ -269,8 +269,9 @@ describe('RepoDialogs - Create Dialog', () => {
     const selects = within(dialog).getAllByTestId('mock-select');
     fireEvent.change(selects[1], { target: { value: 'remote' } });
 
-    // Fill upstream URL
-    const urlInput = screen.getByPlaceholderText('https://registry.npmjs.org');
+    // Fill upstream URL (clear auto-filled default first)
+    const urlInput = within(dialog).getByLabelText(/upstream url/i);
+    await user.clear(urlInput);
     await user.type(urlInput, 'https://repo.example.com');
 
     await user.click(within(dialog).getByRole('button', { name: /^create$/i }));
@@ -531,7 +532,8 @@ describe('RepoDialogs - Upstream Auth (Create)', () => {
     fireEvent.change(selects[1], { target: { value: 'remote' } });
 
     // Fill upstream URL
-    await user.type(within(dialog).getByPlaceholderText('https://registry.npmjs.org'), 'https://example.com');
+    await user.clear(within(dialog).getByLabelText(/upstream url/i));
+    await user.type(within(dialog).getByLabelText(/upstream url/i), 'https://example.com');
 
     // Select basic auth
     const updatedSelects = within(dialog).getAllByTestId('mock-select');
@@ -567,7 +569,8 @@ describe('RepoDialogs - Upstream Auth (Create)', () => {
     fireEvent.change(selects[1], { target: { value: 'remote' } });
 
     // Fill upstream URL
-    await user.type(within(dialog).getByPlaceholderText('https://registry.npmjs.org'), 'https://example.com');
+    await user.clear(within(dialog).getByLabelText(/upstream url/i));
+    await user.type(within(dialog).getByLabelText(/upstream url/i), 'https://example.com');
 
     // Leave auth as "none" (default), submit
     await user.click(within(dialog).getByRole('button', { name: /^create$/i }));

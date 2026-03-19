@@ -1359,3 +1359,100 @@ describe('RepoDialogs - Upstream Auth Edge Cases', () => {
     expect(within(dialog).getByRole('button', { name: /^change$/i })).toBeTruthy();
   });
 });
+describe('RepoDialogs - Default Upstream URL', () => {
+  beforeEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('auto-fills upstream URL when switching to remote type with maven format', () => {
+    render(<RepoDialogs {...defaultProps} />);
+
+    const dialog = screen.getByRole('dialog');
+    const selects = within(dialog).getAllByTestId('mock-select');
+
+    // Change format to maven
+    fireEvent.change(selects[0], { target: { value: 'maven' } });
+    // Change type to remote
+    fireEvent.change(selects[1], { target: { value: 'remote' } });
+
+    const urlInput = within(dialog).getByLabelText(/upstream url/i) as HTMLInputElement;
+    expect(urlInput.value).toBe('https://repo.maven.apache.org/maven2');
+  });
+
+  it('updates upstream URL when format changes while type is remote', () => {
+    render(<RepoDialogs {...defaultProps} />);
+
+    const dialog = screen.getByRole('dialog');
+    const selects = within(dialog).getAllByTestId('mock-select');
+
+    // Set type to remote first (format is generic, no default URL)
+    fireEvent.change(selects[1], { target: { value: 'remote' } });
+
+    // Change format to npm
+    const updatedSelects = within(dialog).getAllByTestId('mock-select');
+    fireEvent.change(updatedSelects[0], { target: { value: 'npm' } });
+
+    const urlInput = within(dialog).getByLabelText(/upstream url/i) as HTMLInputElement;
+    expect(urlInput.value).toBe('https://registry.npmjs.org');
+
+    // Change format to pypi
+    const latestSelects = within(dialog).getAllByTestId('mock-select');
+    fireEvent.change(latestSelects[0], { target: { value: 'pypi' } });
+
+    expect(urlInput.value).toBe('https://pypi.org/simple');
+  });
+
+  it('does not overwrite user-modified URL when format changes', async () => {
+    const user = userEvent.setup();
+    render(<RepoDialogs {...defaultProps} />);
+
+    const dialog = screen.getByRole('dialog');
+    const selects = within(dialog).getAllByTestId('mock-select');
+
+    // Set format to npm and type to remote (auto-fills npm URL)
+    fireEvent.change(selects[0], { target: { value: 'npm' } });
+    fireEvent.change(selects[1], { target: { value: 'remote' } });
+
+    const urlInput = within(dialog).getByLabelText(/upstream url/i) as HTMLInputElement;
+    expect(urlInput.value).toBe('https://registry.npmjs.org');
+
+    // User manually types a custom URL
+    await user.clear(urlInput);
+    await user.type(urlInput, 'https://my-private-npm.example.com');
+    expect(urlInput.value).toBe('https://my-private-npm.example.com');
+
+    // Change format to pypi - should NOT overwrite the custom URL
+    const latestSelects = within(dialog).getAllByTestId('mock-select');
+    fireEvent.change(latestSelects[0], { target: { value: 'pypi' } });
+
+    expect(urlInput.value).toBe('https://my-private-npm.example.com');
+  });
+
+  it('shows format-specific placeholder on the upstream URL input', () => {
+    render(<RepoDialogs {...defaultProps} />);
+
+    const dialog = screen.getByRole('dialog');
+    const selects = within(dialog).getAllByTestId('mock-select');
+
+    // Set format to docker and type to remote
+    fireEvent.change(selects[0], { target: { value: 'docker' } });
+    fireEvent.change(selects[1], { target: { value: 'remote' } });
+
+    const urlInput = within(dialog).getByLabelText(/upstream url/i) as HTMLInputElement;
+    expect(urlInput.placeholder).toBe('https://registry-1.docker.io');
+  });
+
+  it('uses fallback placeholder for formats without a default URL', () => {
+    render(<RepoDialogs {...defaultProps} />);
+
+    const dialog = screen.getByRole('dialog');
+    const selects = within(dialog).getAllByTestId('mock-select');
+
+    // generic format has no default URL
+    fireEvent.change(selects[1], { target: { value: 'remote' } });
+
+    const urlInput = within(dialog).getByLabelText(/upstream url/i) as HTMLInputElement;
+    expect(urlInput.placeholder).toBe('https://upstream-registry.example.com');
+  });
+});

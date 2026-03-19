@@ -394,9 +394,9 @@ describe("RepositoriesContent", () => {
 
   // ---- Mutation callbacks ----
 
-  it("registers create, update, and delete mutations", () => {
+  it("registers create, update, delete, and upstream auth mutations", () => {
     render(<RepositoriesContent />);
-    expect(useMutationConfigs).toHaveLength(3);
+    expect(useMutationConfigs).toHaveLength(4);
   });
 
   it("mutation functions call the corresponding API methods", async () => {

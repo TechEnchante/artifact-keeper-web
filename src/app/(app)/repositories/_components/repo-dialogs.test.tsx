@@ -500,7 +500,7 @@ describe('RepoDialogs - Upstream Auth (Create)', () => {
     fireEvent.change(updatedSelects[2], { target: { value: 'basic' } });
 
     expect(within(dialog).getByPlaceholderText('Username')).toBeTruthy();
-    expect(within(dialog).getByPlaceholderText('Password or token')).toBeTruthy();
+    expect(within(dialog).getByPlaceholderText('Password or access token')).toBeTruthy();
   });
 
   it('shows only token field when bearer auth is selected', () => {
@@ -539,7 +539,7 @@ describe('RepoDialogs - Upstream Auth (Create)', () => {
 
     // Fill auth fields
     await user.type(within(dialog).getByPlaceholderText('Username'), 'myuser');
-    await user.type(within(dialog).getByPlaceholderText('Password or token'), 'mypass');
+    await user.type(within(dialog).getByPlaceholderText('Password or access token'), 'mypass');
 
     // Submit
     await user.click(within(dialog).getByRole('button', { name: /^create$/i }));
@@ -604,7 +604,7 @@ describe('RepoDialogs - Upstream Auth (Create)', () => {
 
     // Auth type should be back to "none", no username/password fields
     expect(within(dialog).queryByPlaceholderText('Username')).toBeNull();
-    expect(within(dialog).queryByPlaceholderText('Password or token')).toBeNull();
+    expect(within(dialog).queryByPlaceholderText('Password or access token')).toBeNull();
     expect(within(dialog).queryByPlaceholderText('Bearer token')).toBeNull();
   });
 });
@@ -654,7 +654,7 @@ describe('RepoDialogs - Upstream Auth (Edit)', () => {
     expect(within(dialog).getByRole('button', { name: /^remove$/i })).toBeTruthy();
   });
 
-  it('calls onUpstreamAuthUpdate with none when remove is clicked', () => {
+  it('calls onUpstreamAuthUpdate with none after remove confirmation', () => {
     const onUpstreamAuthUpdate = vi.fn();
     render(
       <RepoDialogs
@@ -667,8 +667,11 @@ describe('RepoDialogs - Upstream Auth (Edit)', () => {
     );
 
     const dialog = screen.getByRole('dialog');
+    // First click shows the confirmation
     fireEvent.click(within(dialog).getByRole('button', { name: /^remove$/i }));
-
+    expect(onUpstreamAuthUpdate).not.toHaveBeenCalled();
+    // Confirm the removal
+    fireEvent.click(within(dialog).getByRole('button', { name: /confirm remove/i }));
     expect(onUpstreamAuthUpdate).toHaveBeenCalledWith('remote-repo', { auth_type: 'none' });
   });
 
@@ -730,7 +733,7 @@ describe('RepoDialogs - Upstream Auth (Edit)', () => {
 
     // Fill in credentials
     await user.type(within(dialog).getByPlaceholderText('Username'), 'newuser');
-    await user.type(within(dialog).getByPlaceholderText('Password or token'), 'newpass');
+    await user.type(within(dialog).getByPlaceholderText('Password or access token'), 'newpass');
 
     // Save
     await user.click(within(dialog).getByRole('button', { name: /save authentication/i }));

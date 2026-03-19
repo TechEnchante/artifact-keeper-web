@@ -92,6 +92,7 @@ export function RepoDialogs({
   const [editAuthType, setEditAuthType] = useState<string>("none");
   const [editAuthUsername, setEditAuthUsername] = useState("");
   const [editAuthPassword, setEditAuthPassword] = useState("");
+  const [removeAuthConfirm, setRemoveAuthConfirm] = useState(false);
 
   // Key validation - check if key is already taken
   const keyTaken = useMemo(() => {
@@ -313,9 +314,9 @@ export function RepoDialogs({
             {/* Remote repository: upstream authentication */}
             {createForm.repo_type === "remote" && (
               <div className="space-y-3">
-                <Label>Upstream Authentication</Label>
+                <Label htmlFor="create-upstream-auth-type">Upstream Authentication</Label>
                 <Select value={upstreamAuthType} onValueChange={setUpstreamAuthType}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full" id="create-upstream-auth-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -324,30 +325,47 @@ export function RepoDialogs({
                     <SelectItem value="bearer">Bearer token</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Credentials are stored encrypted and used when fetching artifacts from the upstream registry.
+                </p>
 
                 {upstreamAuthType === "basic" && (
                   <>
+                    <Label htmlFor="create-upstream-username">Username</Label>
                     <Input
+                      id="create-upstream-username"
                       placeholder="Username"
+                      required
                       value={upstreamUsername}
                       onChange={(e) => setUpstreamUsername(e.target.value)}
+                      autoComplete="off"
                     />
+                    <Label htmlFor="create-upstream-password">Password</Label>
                     <Input
+                      id="create-upstream-password"
                       type="password"
-                      placeholder="Password or token"
+                      placeholder="Password or access token"
+                      required
                       value={upstreamPassword}
                       onChange={(e) => setUpstreamPassword(e.target.value)}
+                      autoComplete="off"
                     />
                   </>
                 )}
 
                 {upstreamAuthType === "bearer" && (
-                  <Input
-                    type="password"
-                    placeholder="Bearer token"
-                    value={upstreamPassword}
-                    onChange={(e) => setUpstreamPassword(e.target.value)}
-                  />
+                  <>
+                    <Label htmlFor="create-upstream-token">Token</Label>
+                    <Input
+                      id="create-upstream-token"
+                      type="password"
+                      placeholder="Bearer token"
+                      required
+                      value={upstreamPassword}
+                      onChange={(e) => setUpstreamPassword(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </>
                 )}
               </div>
             )}
@@ -425,6 +443,7 @@ export function RepoDialogs({
           setEditAuthType("none");
           setEditAuthUsername("");
           setEditAuthPassword("");
+          setRemoveAuthConfirm(false);
         }
         onEditOpenChange(open);
       }}>
@@ -497,17 +516,20 @@ export function RepoDialogs({
               <Label htmlFor="edit-public">Public repository</Label>
             </div>
 
-            {/* Upstream authentication for remote repos */}
+            {/* Upstream authentication for remote repos (saved separately from main form) */}
             {editRepo?.repo_type === "remote" && (
               <div className="space-y-3 border-t pt-4">
                 <Label>Upstream Authentication</Label>
+                <p className="text-xs text-muted-foreground">
+                  Credentials are stored encrypted and saved separately from other repository settings.
+                </p>
 
                 {editAuthMode === "view" ? (
                   <div className="space-y-2">
                     {editRepo.upstream_auth_configured ? (
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-muted-foreground">
-                          Authentication configured ({editRepo.upstream_auth_type})
+                          Authentication configured ({editRepo.upstream_auth_type === "basic" ? "Basic Auth" : editRepo.upstream_auth_type === "bearer" ? "Bearer Token" : editRepo.upstream_auth_type})
                         </p>
                         <div className="flex gap-2">
                           <Button
@@ -523,14 +545,10 @@ export function RepoDialogs({
                           </Button>
                           <Button
                             type="button"
-                            variant="outline"
+                            variant="destructive"
                             size="sm"
-                            disabled={upstreamAuthPending}
-                            onClick={() => {
-                              if (onUpstreamAuthUpdate) {
-                                onUpstreamAuthUpdate(editRepo.key, { auth_type: "none" });
-                              }
-                            }}
+                            disabled={upstreamAuthPending || removeAuthConfirm}
+                            onClick={() => setRemoveAuthConfirm(true)}
                           >
                             Remove
                           </Button>
@@ -551,6 +569,35 @@ export function RepoDialogs({
                         </Button>
                       </div>
                     )}
+                    {removeAuthConfirm && (
+                      <div className="flex items-center gap-2 rounded border border-destructive/50 bg-destructive/5 p-2">
+                        <p className="text-xs text-destructive flex-1">
+                          Removing credentials will cause upstream requests to fail if the registry requires authentication.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRemoveAuthConfirm(false)}
+                        >
+                          Keep
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          disabled={upstreamAuthPending}
+                          onClick={() => {
+                            if (onUpstreamAuthUpdate) {
+                              onUpstreamAuthUpdate(editRepo.key, { auth_type: "none" });
+                            }
+                            setRemoveAuthConfirm(false);
+                          }}
+                        >
+                          Confirm Remove
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -567,27 +614,41 @@ export function RepoDialogs({
 
                     {editAuthType === "basic" && (
                       <>
+                        <Label htmlFor="edit-upstream-username">Username</Label>
                         <Input
+                          id="edit-upstream-username"
                           placeholder="Username"
+                          required
                           value={editAuthUsername}
                           onChange={(e) => setEditAuthUsername(e.target.value)}
+                          autoComplete="off"
                         />
+                        <Label htmlFor="edit-upstream-password">Password</Label>
                         <Input
+                          id="edit-upstream-password"
                           type="password"
-                          placeholder="Password or token"
+                          placeholder="Password or access token"
+                          required
                           value={editAuthPassword}
                           onChange={(e) => setEditAuthPassword(e.target.value)}
+                          autoComplete="off"
                         />
                       </>
                     )}
 
                     {editAuthType === "bearer" && (
-                      <Input
-                        type="password"
-                        placeholder="Bearer token"
-                        value={editAuthPassword}
-                        onChange={(e) => setEditAuthPassword(e.target.value)}
-                      />
+                      <>
+                        <Label htmlFor="edit-upstream-token">Token</Label>
+                        <Input
+                          id="edit-upstream-token"
+                          type="password"
+                          placeholder="Bearer token"
+                          required
+                          value={editAuthPassword}
+                          onChange={(e) => setEditAuthPassword(e.target.value)}
+                          autoComplete="off"
+                        />
+                      </>
                     )}
 
                     <div className="flex gap-2">
@@ -607,7 +668,11 @@ export function RepoDialogs({
                       <Button
                         type="button"
                         size="sm"
-                        disabled={upstreamAuthPending || (editAuthType !== "none" && !editAuthPassword)}
+                        disabled={
+                          upstreamAuthPending ||
+                          (editAuthType !== "none" && !editAuthPassword) ||
+                          (editAuthType === "basic" && !editAuthUsername)
+                        }
                         onClick={() => {
                           if (onUpstreamAuthUpdate && editRepo) {
                             const payload: { auth_type: string; username?: string; password?: string } = {
@@ -620,9 +685,6 @@ export function RepoDialogs({
                               payload.password = editAuthPassword;
                             }
                             onUpstreamAuthUpdate(editRepo.key, payload);
-                            setEditAuthMode("view");
-                            setEditAuthUsername("");
-                            setEditAuthPassword("");
                           }
                         }}
                       >
